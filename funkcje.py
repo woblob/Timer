@@ -68,7 +68,7 @@ class Timer:
             _monitor_is_on = self._monitor_is_on()
             while next(_monitor_is_on):
                 self.active_window_name = Timer._get_active_window_name()
-                if self.previous_window_name != self.active_window_name:
+                if self.window_changed():
                     self._update_activity()
 
         except KeyboardInterrupt:
@@ -79,6 +79,9 @@ class Timer:
         filename = self.end_time
         with open(f"outputs/{filename}.json", "w") as file:
             json.dump(self.session, file, indent=4)
+
+    def window_changed(self):
+        return self.previous_window_name != self.active_window_name
 
     @staticmethod
     def _my_timer():
@@ -125,6 +128,7 @@ class Timer:
                 yield False
 
             sleep(self.sleeping_time)
+
 
 if __name__ == "__main__":
     T = Timer(3)
