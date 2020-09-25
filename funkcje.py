@@ -58,10 +58,10 @@ class Timer:
         self.previous_window_name = self.active_window_name
 
     def main_loop(self):
-        self.start_time = Timer._my_timer()
         try:
             _monitor_is_on = self._monitor_is_on()
             while True:
+                self.start_time = Timer._my_timer()
                 while next(_monitor_is_on) and self.time_limit_not_exceeded():
                     if self.window_changed():
                         self._update_activity()
@@ -69,7 +69,6 @@ class Timer:
                 self._save_output()
                 while not next(_monitor_is_on):
                     sleep(3)  # off screen
-                self.start_time = Timer._my_timer()
         except KeyboardInterrupt:
             self._update_activity()
             self.session["end"] = Timer._my_timer().strftime("%Y-%m-%d %H:%M:%S")
