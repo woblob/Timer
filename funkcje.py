@@ -8,27 +8,23 @@ import json
 
 class Timer:
     def __init__(self, sleeping_time):
-        self.today = datetime.datetime.today()
-        self.session = self._make_session()
+        self.session = Timer._make_session()
         self.previous_window_name = "Desktop"
         self.active_window_name = Timer._get_active_window_name()
-        self.start_time = None
+        self.saved_seconds_ago = datetime.timedelta(minutes=10)
+        self.sleeping_time = datetime.timedelta(seconds=sleeping_time)
+        self.time_diff_between_savings = datetime.timedelta()
         self.end_time = None
-        self.sleeping_time = sleeping_time
+        self.start_time = Timer._my_timer()
+        delta = self.start_time - datetime.datetime(1970, 1, 1)
+        self.id = int(delta.total_seconds())
 
-    # @property
-    # def active_window_name(self):
-    #     return Timer._get_active_window_name()
-    #
-    # @active_window_name.setter
-    # def active_window_name(self, val):
-    #     self.active_window_name = val
-
-    def _make_session(self):
+    @staticmethod
+    def _make_session():
         activities = {
             "tag": "session",
-            "start": self.today.strftime("%Y-%m-%d %H:%M:%S"),
-            "end": None,
+            "start": datetime.datetime.today().strftime("%Y-%m-%d %H:%M:%S"),
+            "end": datetime.datetime.today(),
             "activities": dict()
         }
         return activities
@@ -66,21 +62,30 @@ class Timer:
         self.start_time = Timer._my_timer()
         try:
             _monitor_is_on = self._monitor_is_on()
-            while next(_monitor_is_on):
-                self.active_window_name = Timer._get_active_window_name()
-                if self.window_changed():
-                    self._update_activity()
-
+            while True:
+                while next(_monitor_is_on) and self.time_limit_not_exceeded():
+                    if self.window_changed():
+                        self._update_activity()
+                self._save_output()
+                while not next(_monitor_is_on):
+                    sleep(10)
         except KeyboardInterrupt:
             self._update_activity()
+            self.session["end"] = Timer._my_timer()
             self._save_output()
 
+    def time_limit_not_exceeded(self):
+        self.saved_seconds_ago += self.sleeping_time
+        return not self.saved_seconds_ago > self.time_diff_between_savings
+
     def _save_output(self):
-        filename = self.end_time
+        filename = " - ".join((self.id, self.end_time.strftime("%Y-%m-%d %H:%M:%S")))
         with open(f"outputs/{filename}.json", "w") as file:
             json.dump(self.session, file, indent=4)
+        self.session["activities"].clear()
 
     def window_changed(self):
+        self.active_window_name = Timer._get_active_window_name()
         return self.previous_window_name != self.active_window_name
 
     @staticmethod
@@ -127,7 +132,7 @@ class Timer:
             else:
                 yield False
 
-            sleep(self.sleeping_time)
+            sleep(self.sleeping_time.seconds)
 
 
 if __name__ == "__main__":
