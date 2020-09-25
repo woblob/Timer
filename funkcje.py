@@ -8,23 +8,22 @@ import json
 
 class Timer:
     def __init__(self, sleeping_time):
-        self.session = Timer._make_session()
         self.previous_window_name = "Desktop"
         self.active_window_name = Timer._get_active_window_name()
-        self.saved_seconds_ago = datetime.timedelta(minutes=10)
+        self.saved_seconds_ago = datetime.timedelta()
         self.sleeping_time = datetime.timedelta(seconds=sleeping_time)
-        self.time_diff_between_savings = datetime.timedelta()
-        self.end_time = None
+        self.time_diff_between_savings = datetime.timedelta(minutes=10)
+        self.end_time = datetime.datetime(2030, 1, 1)
         self.start_time = Timer._my_timer()
+        self.session = self._make_session()
         delta = self.start_time - datetime.datetime(1970, 1, 1)
-        self.id = int(delta.total_seconds())
+        self.id = str(int(delta.total_seconds()))
 
-    @staticmethod
-    def _make_session():
+    def _make_session(self):
         activities = {
             "tag": "session",
-            "start": datetime.datetime.today().strftime("%Y-%m-%d %H:%M:%S"),
-            "end": datetime.datetime.today(),
+            "start": self.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "end": self.end_time.strftime("%Y-%m-%d %H:%M:%S"),
             "activities": dict()
         }
         return activities
@@ -66,12 +65,14 @@ class Timer:
                 while next(_monitor_is_on) and self.time_limit_not_exceeded():
                     if self.window_changed():
                         self._update_activity()
+                self._update_activity()
                 self._save_output()
                 while not next(_monitor_is_on):
-                    sleep(10)
+                    sleep(3)  # off screen
+                self.start_time = Timer._my_timer()
         except KeyboardInterrupt:
             self._update_activity()
-            self.session["end"] = Timer._my_timer()
+            self.session["end"] = Timer._my_timer().strftime("%Y-%m-%d %H:%M:%S")
             self._save_output()
 
     def time_limit_not_exceeded(self):
@@ -79,6 +80,7 @@ class Timer:
         return not self.saved_seconds_ago > self.time_diff_between_savings
 
     def _save_output(self):
+        self.end_time = Timer._my_timer()
         filename = " - ".join((self.id, self.end_time.strftime("%Y-%m-%d %H:%M:%S")))
         with open(f"outputs/{filename}.json", "w") as file:
             json.dump(self.session, file, indent=4)
@@ -136,5 +138,5 @@ class Timer:
 
 
 if __name__ == "__main__":
-    T = Timer(3)
+    T = Timer(1)
     T.main_loop()
